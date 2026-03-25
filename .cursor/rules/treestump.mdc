@@ -1,0 +1,38 @@
+---
+description: Project conventions for TreeStump syntax tree generator
+globs: src/**
+---
+
+# TreeStump Conventions
+
+## Stack
+- Vite + React 19 + TypeScript (strict) + Tailwind CSS v4 + Zustand
+- React Router v7 HashRouter for GitHub Pages compatibility
+
+## File Organization
+- `src/components/` — React components, one component per file
+- `src/lib/` — Pure functions with no React dependencies (parser, layout, export)
+- `src/stores/` — Zustand stores
+- `src/types.ts` — Shared type definitions
+
+## Coding Style
+- Functional components with named exports as default
+- Prefer `function` declarations over arrow functions for components
+- Use Tailwind utility classes; avoid separate CSS files per component
+- All colors, fonts, and radii come from the theme tokens in `index.css`
+- State: use `useProjectStore` for global state, local `useState` for UI-only state
+- Derived data (parsed tree, layout): compute via `useMemo`, never store in Zustand
+
+## Design Tokens (from Sunday.ai)
+- Background: `bg` (#ffffff)
+- Text: `primary` (#1a1a1a), `secondary` (60% opacity)
+- Accent: `accent` (#f7e731)
+- Surfaces: `surface` (#f3f3f0), `surface-secondary` (#ecece8)
+- Border: `border` (#1a1a1a at 10%)
+- Border radius: 12px default, 9999px for pills
+- Fonts: `--font-sans` (Geist), `--font-mono` (Geist Mono)
+
+## Data Flow
+```
+bracketText → parse() → TreeNode → layoutTree() → PositionedNode[] → <TreeView /> (SVG)
+```
