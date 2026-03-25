@@ -11,6 +11,7 @@
 - Ability to traverse nodes with arrow keys in interactive node edit mode so you don't have to move your hand to your mouse
 - Add button to auto-centerd and zoom the view to fit the entire tree (add a button for a one-time fit and a button for a continual update mode) - also a mode that zooms in / follows the branch (/current leaf) of the tree that is currently being edited
 - SEO
+- Drag should be disabled when auto-fit is on (and maybe zoom too) (idk about this one actually)
 
 ## Medium Priority
 

@@ -10,7 +10,7 @@ export default function HomePage() {
 
     function handleNewProject() {
         resetProject();
-        navigate("/editor");
+        navigate("/edit");
     }
 
     function handleImportClick() {
@@ -27,7 +27,7 @@ export default function HomePage() {
                 const data = JSON.parse(reader.result as string);
                 if (data.bracketText) {
                     loadProject(data);
-                    navigate("/editor");
+                    navigate("/edit");
                 }
             } catch {
                 // invalid file

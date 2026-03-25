@@ -69,6 +69,7 @@ export default function Canvas({ children }: CanvasProps) {
     const clearSelection = useProjectStore((s) => s.clearSelection);
     const autoFit = useProjectStore((s) => s.autoFit);
     const bracketText = useProjectStore((s) => s.bracketText);
+    const settings = useProjectStore((s) => s.settings);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -118,17 +119,13 @@ export default function Canvas({ children }: CanvasProps) {
         });
     }, [setCanvas]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!autoFit) return;
         const el = containerRef.current;
         const content = contentRef.current;
         if (!el || !content) return;
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                fitContentToViewport(el, content, setCanvas);
-            });
-        });
-    }, [autoFit, bracketText, setCanvas]);
+        fitContentToViewport(el, content, setCanvas);
+    }, [autoFit, bracketText, settings, setCanvas]);
 
     const handlePointerDown = useCallback((e: ReactPointerEvent) => {
         if (e.button !== 0) return;
