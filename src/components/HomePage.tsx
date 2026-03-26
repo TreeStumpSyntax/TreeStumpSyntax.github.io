@@ -62,6 +62,12 @@ export default function HomePage() {
                         >
                             Import Project
                         </button>
+                        <button
+                            onClick={() => navigate("/tutorial")}
+                            className="rounded-xl border border-border px-7 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-surface active:scale-[0.98]"
+                        >
+                            Tutorial
+                        </button>
                         <input
                             ref={fileInputRef}
                             type="file"
