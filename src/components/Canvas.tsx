@@ -39,16 +39,16 @@ function fitContentToViewport(
     const svgHeight = svg.height.baseVal.value;
     if (svgWidth === 0 || svgHeight === 0) return;
 
-    const PADDING_X = 60;
-    const PADDING_TOP = 60;
-    const PADDING_BOTTOM = 160;
+    const PADDING_X = 16;
+    const PADDING_TOP = 16;
+    const PADDING_BOTTOM = 72;
 
     const availableWidth = viewport.width - PADDING_X * 2;
     const availableHeight = viewport.height - PADDING_TOP - PADDING_BOTTOM;
 
     const zoom = Math.max(
         MIN_ZOOM,
-        Math.min(availableWidth / svgWidth, availableHeight / svgHeight, 2.0),
+        Math.min(availableWidth / svgWidth, availableHeight / svgHeight, 3.0),
     );
 
     const scaledWidth = svgWidth * zoom;
