@@ -20,6 +20,7 @@
 - Ability to traverse nodes with arrow keys in interactive node edit mode so you don't have to move your hand to your mouse
 - Interactive node creation (could be very useful - another use case for this would be starting a tree without touching the text editor)
 - When highlighting text in interactive mode, it should highlight it in the edit panel too (and vice versa?)
+- Make cmd +/- zoom in/out in interactive mode instead of page zoom in/out
 
 ## Low Priority
 
@@ -28,3 +29,4 @@
 - Make it obvious that there is more text if there are more than three lines / text below/above what is visible
 - Add support for multiple trees side by side (maybe) (ex: [CP [C' ...]] [CP [C' ...]])
 - Move the x button on the settings menu to the same spot as the hamburger button, so you don't need to move your mouse to close/open the settings
+- Update things for mobile version
