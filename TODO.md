@@ -2,7 +2,6 @@
 
 ## High Priority
 
-- Add tutorial page with videos
 - Add a warning message to save before you exit a project or load a new one
 - Add support for arrows - and look into other more advanced tree drawing techniques
 - Add LaTeX rendering support
@@ -24,6 +23,7 @@
 
 ## Low Priority
 
+- Make logo and branding
 - Consider updating fonts and overall aesthetics
 - Make it obvious that there is more text if there are more than three lines / text below/above what is visible
 - Add support for multiple trees side by side (maybe) (ex: [CP [C' ...]] [CP [C' ...]])
