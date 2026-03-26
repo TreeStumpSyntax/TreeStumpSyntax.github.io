@@ -183,7 +183,7 @@ export const useProjectStore = create<ProjectStore>()(
             canvas: DEFAULT_CANVAS,
             cursorPos: null,
             pendingFit: false,
-            autoFit: false,
+            autoFit: true,
             selectedNodes: new Set<number>(),
             clipboard: null,
 

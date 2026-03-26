@@ -118,9 +118,7 @@ export default function TutorialPage() {
                         <p>
                             Select a node and press <Key>{MOD}</Key>{" "}
                             <Key>←</Key> or <Key>{MOD}</Key> <Key>→</Key> to
-                            swap it with its left or right sibling. When a
-                            parent node is selected along with its children, the
-                            whole subtree swaps together.
+                            swap it with its left or right sibling.
                         </p>
                         <Video src="/videos/4e_cropped.gif" />
                     </Section>
