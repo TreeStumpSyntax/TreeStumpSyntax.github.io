@@ -225,7 +225,6 @@ const SHORTCUTS: { label: string; keys: string[] }[] = [
     { label: "Cut", keys: [MOD, "X"] },
     { label: "Paste as child", keys: [MOD, "V"] },
     { label: "Move node", keys: [MOD, "← / →"] },
-    { label: "Edit node", keys: ["Double-click"] },
     { label: "Confirm edit", keys: ["↵"] },
     { label: "Cancel / Deselect", keys: ["Esc"] },
     { label: "Export project", keys: [MOD, "S"] },
