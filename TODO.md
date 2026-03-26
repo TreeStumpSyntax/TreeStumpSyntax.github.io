@@ -27,3 +27,4 @@
 - Consider updating fonts and overall aesthetics
 - Make it obvious that there is more text if there are more than three lines / text below/above what is visible
 - Add support for multiple trees side by side (maybe) (ex: [CP [C' ...]] [CP [C' ...]])
+- Move the x button on the settings menu to the same spot as the hamburger button, so you don't need to move your mouse to close/open the settings
