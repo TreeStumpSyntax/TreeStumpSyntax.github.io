@@ -22,6 +22,15 @@ function Code({ children }: { children: string }) {
     );
 }
 
+function Video({ src }: { src: string }) {
+    return (
+        <img
+            src={src}
+            className="w-full rounded-xl border border-border bg-surface"
+        />
+    );
+}
+
 function Section({
     title,
     children,
@@ -73,65 +82,39 @@ export default function TutorialPage() {
                         Back
                     </button>
 
-                    <Section title="Write bracket notation">
+                    <Section title="Bracket notation">
                         <p>
-                            TreeStump reads{" "}
-                            <strong className="font-medium text-primary">
-                                labelled bracket notation
-                            </strong>{" "}
-                            — a standard format used in linguistics to describe
-                            phrase structure trees.
-                        </p>
-                        <p>
-                            Each pair of brackets contains a label followed by
-                            its children:
+                            TreeStump uses labelled bracket notation. Each pair
+                            of brackets contains a label followed by its
+                            children:
                         </p>
                         <div className="rounded-xl border border-border bg-surface p-4 font-mono text-sm text-primary">
                             [S [NP John][VP [V saw][NP Mary]]]
                         </div>
-                        <p>
-                            Labels can be anything — <Code>NP</Code>,{" "}
-                            <Code>V'</Code>, <Code>DP</Code>, etc. Words at the
-                            end of a branch (terminals) don't need brackets:
-                            just type the word inside the parent.
-                        </p>
-                        <p>
-                            Brackets auto-pair as you type, and the bracket
-                            editor at the bottom of the screen highlights
-                            matching pairs by depth.
-                        </p>
+                        <Video src="/videos/1e_cropped.gif" />
                     </Section>
 
-                    <Section title="Select and edit nodes">
+                    <Section title="Visual editor">
                         <p>
-                            <strong className="font-medium text-primary">
-                                Click
-                            </strong>{" "}
-                            any node on the tree to select it. Click again to
-                            deselect. You can select multiple nodes at once —
-                            click an empty area to clear the selection.
+                            The visual editor provides a more intuitive way to
+                            edit your trees. Just click a node's text to edit it
+                            inline. Press <Key>↵</Key> to confirm or{" "}
+                            <Key>Esc</Key> to cancel.
                         </p>
-                        <p>
-                            <strong className="font-medium text-primary">
-                                Double-click
-                            </strong>{" "}
-                            a node to edit its label inline. Press <Key>↵</Key>{" "}
-                            to confirm or <Key>Esc</Key> to cancel.
-                        </p>
-                        <p>
-                            Hold <Key>{MOD}</Key> and drag on the canvas to
-                            box-select a region of nodes at once.
-                        </p>
+                        <Video src="/videos/2e_cropped.gif" />
                     </Section>
 
-                    <Section title="Rearrange the tree">
+                    <Section title="Select and edit">
                         <p>
-                            <strong className="font-medium text-primary">
-                                Drag
-                            </strong>{" "}
-                            any node and drop it onto another node to move it
-                            there as a child.
+                            Hold <Key>{MOD}</Key> and click a node to select it
+                            or drag to select multiple nodes at once. Press{" "}
+                            <Key>⌫</Key> while nodes are selected to delete them
+                            along with their subtrees.
                         </p>
+                        <Video src="/videos/3e_cropped.gif" />
+                    </Section>
+
+                    <Section title="Rearrange">
                         <p>
                             Select a node and press <Key>{MOD}</Key>{" "}
                             <Key>←</Key> or <Key>{MOD}</Key> <Key>→</Key> to
@@ -139,10 +122,24 @@ export default function TutorialPage() {
                             parent node is selected along with its children, the
                             whole subtree swaps together.
                         </p>
+                        <Video src="/videos/4e_cropped.gif" />
+                    </Section>
+
+                    <Section title="Drag and drop">
                         <p>
-                            Select one or more nodes and press <Key>⌫</Key> to
-                            delete them along with their subtrees.
+                            Drag a node and drop it on or next to another node
+                            to move it there as a child or sibling.
                         </p>
+                        <Video src="/videos/5e_cropped.gif" />
+                    </Section>
+
+                    <Section title="Undo and redo">
+                        <p>
+                            Press <Key>{MOD}</Key> <Key>Z</Key> to undo any
+                            change, and <Key>{MOD}</Key> <Key>⇧</Key>{" "}
+                            <Key>Z</Key> to redo.
+                        </p>
+                        <Video src="/videos/6e_cropped.gif" />
                     </Section>
 
                     <Section title="Copy, cut, and paste">
@@ -150,31 +147,17 @@ export default function TutorialPage() {
                             Select a node and press <Key>{MOD}</Key>{" "}
                             <Key>C</Key> to copy its subtree, or{" "}
                             <Key>{MOD}</Key> <Key>X</Key> to cut it. Then select
-                            any other node and press <Key>{MOD}</Key>{" "}
-                            <Key>V</Key> to paste it as a child of that node.
+                            another node and press <Key>{MOD}</Key> <Key>V</Key>{" "}
+                            to paste it as a child of that node.
                         </p>
                     </Section>
 
-                    <Section title="Export your tree">
+                    <Section title="Export">
                         <p>
-                            Open the{" "}
-                            <strong className="font-medium text-primary">
-                                settings menu
-                            </strong>{" "}
-                            (top-left button) to export your tree as a PNG or
-                            SVG, or save the full project as a{" "}
-                            <Code>.treestump</Code> file you can re-open later.
-                        </p>
-                        <p>
-                            You can also use keyboard shortcuts:{" "}
-                            <Key>{MOD}</Key> <Key>⇧</Key> <Key>S</Key> for PNG,{" "}
-                            <Key>{MOD}</Key> <Key>⇧</Key> <Key>E</Key> for SVG,
-                            and <Key>{MOD}</Key> <Key>S</Key> to save the
-                            project file.
-                        </p>
-                        <p>
-                            Give your project a name in the settings menu — that
-                            name will be used as the filename when you export.
+                            Open the settings menu (top-left button) to export
+                            your tree as a PNG or SVG, or save the full project
+                            as a <Code>.treestump</Code> file you can re-open
+                            later.
                         </p>
                     </Section>
 
