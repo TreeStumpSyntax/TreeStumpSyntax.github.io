@@ -22,6 +22,7 @@
 - Make cmd +/- zoom in/out in interactive mode instead of page zoom in/out
 - Add zoom level for auto-fit mode
 - Camera drag should be disabled when auto-fit is on
+- Remove leading and trailing whitespace in edit panel
 
 ## Low Priority
 
