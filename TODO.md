@@ -3,15 +3,14 @@
 # Arrow Edits
 
 - Add arrow labels
-- Boxy arrow curves should be 90 degrees (not rounded)
-- Should be able to select and delete arrows
 - Fix arrow head looking weird
-- Fix above tree setting looking weird
-- Ends of arrows should be sharp (not rounded)?
+- Fix "above tree" setting looking weird
+- Ends of arrow lines should be sharp (not rounded)
 - Autocomplete when typing arrow destination?
 - Rework syntax for multiple arrows from one node
 - For arrows from non-terminal nodes, arrow start shouldn't be connected to normal edges
 - Ability of manually adjust arrows
+- There are a few issues with how the arrows are placed/rendered. As shown in the screenshot, the line of the arrow goes past the arrow head, and the arrow head and line do not agree in direction.
 
 ## High Priority
 
