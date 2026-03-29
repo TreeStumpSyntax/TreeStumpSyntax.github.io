@@ -13,9 +13,12 @@ import {
 import {
     moveNodeUnder as moveNodeUnderImpl,
     swapSibling as swapSiblingImpl,
+    findHighestSelectedNode,
 } from "../lib/treeOperations";
-import type { CanvasState, Settings } from "../types";
-import { FONT_SIZE } from "../types";
+import { arrowExtraPadding } from "../lib/arrowLayout";
+import { extractArrows } from "../lib/parser";
+import type { ArrowSettings, CanvasState, Settings, TreeNode } from "../types";
+import { DEFAULT_ARROW_SETTINGS, FONT_SIZE } from "../types";
 
 export const DEFAULT_SETTINGS: Settings = {
     autoSubscript: false,
@@ -24,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
     coloring: true,
     nodeColor: "#2563eb",
     leafColor: "#dc2626",
+    defaultArrowColor: "#1a1a1a",
     alignment: "top",
     fontFamily: "Geist",
     nodeSpacing: 24,
@@ -44,6 +48,7 @@ const DEFAULT_BRACKET_TEXT =
 interface Snapshot {
     bracketText: string;
     settings: Settings;
+    arrowSettings: Record<string, ArrowSettings>;
 }
 
 const MAX_HISTORY = 100;
@@ -58,11 +63,23 @@ let lastTypingOp: TypingOp = "none";
 
 export type TextEditType = "word" | "space" | "delete";
 
-function takeSnapshot(state: { bracketText: string; settings: Settings }): Snapshot {
-    return { bracketText: state.bracketText, settings: { ...state.settings } };
+function takeSnapshot(state: {
+    bracketText: string;
+    settings: Settings;
+    arrowSettings: Record<string, ArrowSettings>;
+}): Snapshot {
+    return {
+        bracketText: state.bracketText,
+        settings: { ...state.settings },
+        arrowSettings: { ...state.arrowSettings },
+    };
 }
 
-function pushSnapshot(state: { bracketText: string; settings: Settings }) {
+function pushSnapshot(state: {
+    bracketText: string;
+    settings: Settings;
+    arrowSettings: Record<string, ArrowSettings>;
+}) {
     past.push(takeSnapshot(state));
     if (past.length > MAX_HISTORY) past.shift();
 }
@@ -91,7 +108,7 @@ function shouldCreateTextUndoStop(newOp: TypingOp): boolean {
 }
 
 function pushHistoryForText(
-    state: { bracketText: string; settings: Settings },
+    state: { bracketText: string; settings: Settings; arrowSettings: Record<string, ArrowSettings> },
     editType?: TextEditType,
 ) {
     if (editType == null) {
@@ -112,7 +129,7 @@ function pushHistoryForText(
  * Time-based merge for settings changes (slider drags, color hex input).
  */
 function pushHistoryTimeBased(
-    state: { bracketText: string; settings: Settings },
+    state: { bracketText: string; settings: Settings; arrowSettings: Record<string, ArrowSettings> },
     merge: boolean,
 ) {
     const now = Date.now();
@@ -138,6 +155,9 @@ interface ProjectStore {
     autoFit: boolean;
     selectedNodes: Set<number>;
     clipboard: string | null;
+    arrowSettings: Record<string, ArrowSettings>;
+    selectedArrow: string | null;
+    arrowPopover: { key: string; x: number; y: number } | null;
 
     setProjectName: (name: string) => void;
     resetSettings: () => void;
@@ -153,6 +173,7 @@ interface ProjectStore {
         bracketText: string;
         settings: Settings;
         canvas: CanvasState;
+        arrowSettings?: Record<string, ArrowSettings>;
     }) => void;
     clearPendingFit: () => void;
     undo: () => void;
@@ -172,6 +193,53 @@ interface ProjectStore {
         sourceStart: number,
         direction: "left" | "right",
     ) => void;
+    updateArrowSettings: (
+        key: string,
+        partial: Partial<ArrowSettings>,
+        merge?: boolean,
+    ) => void;
+    selectArrow: (key: string | null) => void;
+    setArrowPopover: (
+        popover: { key: string; x: number; y: number } | null,
+    ) => void;
+    deleteSelectedArrow: () => void;
+    cutSelectedArrow: () => void;
+    arrowClipboard: string | null;
+    pasteArrow: () => void;
+}
+
+/** Remove one arrow target from bracketText. Returns new text or null if not found. */
+function removeArrowText(
+    bracketText: string,
+    sourceLabel: string,
+    targetLabel: string,
+): string | null {
+    const { tree } = parse(bracketText);
+    if (!tree) return null;
+
+    let found: TreeNode | null = null;
+    function visit(node: TreeNode) {
+        if (node.label === sourceLabel && node.arrowTargets?.includes(targetLabel)) found = node;
+        for (const child of node.children) visit(child);
+    }
+    visit(tree);
+
+    if (!found || (found as TreeNode).arrowSyntaxStart == null) return null;
+    const node = found as TreeNode;
+    const syntaxStart = node.arrowSyntaxStart!;
+    const syntaxEnd = node.arrowSyntaxEnd!;
+    const remaining = node.arrowTargets!.filter((t) => t !== targetLabel);
+
+    if (remaining.length === 0) {
+        let start = syntaxStart;
+        while (start > 0 && bracketText[start - 1] === " ") start--;
+        return bracketText.slice(0, start) + bracketText.slice(syntaxEnd);
+    }
+    return (
+        bracketText.slice(0, syntaxStart) +
+        "-> " + remaining.join("; ") +
+        bracketText.slice(syntaxEnd)
+    );
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -186,6 +254,10 @@ export const useProjectStore = create<ProjectStore>()(
             autoFit: true,
             selectedNodes: new Set<number>(),
             clipboard: null,
+            arrowSettings: {},
+            selectedArrow: null,
+            arrowPopover: null,
+            arrowClipboard: null,
 
             setProjectName: (name) => set({ projectName: name }),
             setAutoFit: (v) => set({ autoFit: v }),
@@ -220,6 +292,9 @@ export const useProjectStore = create<ProjectStore>()(
                     canvas: DEFAULT_CANVAS,
                     pendingFit: true,
                     selectedNodes: new Set(),
+                    arrowSettings: {},
+                    selectedArrow: null,
+                    arrowPopover: null,
                 });
             },
             loadProject: (project) => {
@@ -231,6 +306,9 @@ export const useProjectStore = create<ProjectStore>()(
                     canvas: project.canvas ?? DEFAULT_CANVAS,
                     pendingFit: true,
                     selectedNodes: new Set(),
+                    arrowSettings: project.arrowSettings ?? {},
+                    selectedArrow: null,
+                    arrowPopover: null,
                 });
             },
             undo: () => {
@@ -242,7 +320,10 @@ export const useProjectStore = create<ProjectStore>()(
                 set({
                     bracketText: prev.bracketText,
                     settings: prev.settings,
+                    arrowSettings: prev.arrowSettings,
                     selectedNodes: new Set(),
+                    selectedArrow: null,
+                    arrowPopover: null,
                 });
             },
             redo: () => {
@@ -254,7 +335,10 @@ export const useProjectStore = create<ProjectStore>()(
                 set({
                     bracketText: next.bracketText,
                     settings: next.settings,
+                    arrowSettings: next.arrowSettings,
                     selectedNodes: new Set(),
+                    selectedArrow: null,
+                    arrowPopover: null,
                 });
             },
             toggleNodeSelection: (sourceStart) => {
@@ -264,12 +348,14 @@ export const useProjectStore = create<ProjectStore>()(
                 } else {
                     next.add(sourceStart);
                 }
-                set({ selectedNodes: next });
+                set({ selectedNodes: next, selectedArrow: null, arrowPopover: null });
             },
             clearSelection: () => {
-                if (get().selectedNodes.size > 0) {
-                    set({ selectedNodes: new Set() });
-                }
+                const updates: Partial<ProjectStore> = {};
+                if (get().selectedNodes.size > 0) updates.selectedNodes = new Set();
+                if (get().selectedArrow) updates.selectedArrow = null;
+                if (get().arrowPopover) updates.arrowPopover = null;
+                if (Object.keys(updates).length > 0) set(updates);
             },
             deleteSelectedNodes: () => {
                 const { bracketText, selectedNodes } = get();
@@ -283,17 +369,19 @@ export const useProjectStore = create<ProjectStore>()(
                 set({ bracketText: newText, selectedNodes: new Set() });
             },
             selectNodesInRect: (rect) => {
-                const { bracketText, settings, selectedNodes: current } = get();
+                const { bracketText, settings, arrowSettings: as_, selectedNodes: current } = get();
                 const { tree } = parse(bracketText);
                 if (!tree) return;
                 const layout = layoutTree(tree, settings);
                 if (!layout) return;
                 const padding = FONT_SIZE * 2;
+                const arrows = extractArrows(tree);
+                const extra = arrowExtraPadding(arrows, as_);
                 const inRect = computeNodesInRect(
                     layout.root,
                     rect,
                     padding,
-                    padding + FONT_SIZE,
+                    padding + FONT_SIZE + extra.above,
                 );
                 const toggled = new Set(current);
                 for (const ss of inRect) {
@@ -391,6 +479,88 @@ export const useProjectStore = create<ProjectStore>()(
                     selectedNodes: new Set([result.newSourceStart]),
                 });
             },
+            updateArrowSettings: (key, partial, merge = false) => {
+                pushHistoryTimeBased(get(), merge);
+                set((state) => ({
+                    arrowSettings: {
+                        ...state.arrowSettings,
+                        [key]: {
+                            ...DEFAULT_ARROW_SETTINGS,
+                            ...state.arrowSettings[key],
+                            ...partial,
+                        },
+                    },
+                }));
+            },
+            selectArrow: (key) => {
+                set({
+                    selectedArrow: key,
+                    selectedNodes: new Set(),
+                    arrowPopover: key == null ? null : get().arrowPopover,
+                });
+            },
+            setArrowPopover: (popover) => {
+                set({
+                    arrowPopover: popover,
+                    selectedArrow: popover?.key ?? null,
+                    selectedNodes: new Set(),
+                });
+            },
+            deleteSelectedArrow: () => {
+                const { selectedArrow, bracketText, arrowSettings } = get();
+                if (!selectedArrow) return;
+                const sepIdx = selectedArrow.indexOf("::");
+                if (sepIdx < 0) return;
+                const newText = removeArrowText(bracketText, selectedArrow.slice(0, sepIdx), selectedArrow.slice(sepIdx + 2));
+                if (newText == null) return;
+                const newArrowSettings = { ...arrowSettings };
+                delete newArrowSettings[selectedArrow];
+                pushSnapshot(get());
+                future = [];
+                lastTypingOp = "none";
+                set({ bracketText: newText, arrowSettings: newArrowSettings, selectedArrow: null, arrowPopover: null });
+            },
+            cutSelectedArrow: () => {
+                const { selectedArrow, bracketText, arrowSettings } = get();
+                if (!selectedArrow) return;
+                const sepIdx = selectedArrow.indexOf("::");
+                if (sepIdx < 0) return;
+                const targetLabel = selectedArrow.slice(sepIdx + 2);
+                const newText = removeArrowText(bracketText, selectedArrow.slice(0, sepIdx), targetLabel);
+                if (newText == null) return;
+                const newArrowSettings = { ...arrowSettings };
+                delete newArrowSettings[selectedArrow];
+                pushSnapshot(get());
+                future = [];
+                lastTypingOp = "none";
+                set({ bracketText: newText, arrowSettings: newArrowSettings, selectedArrow: null, arrowPopover: null, arrowClipboard: targetLabel });
+            },
+            pasteArrow: () => {
+                const { arrowClipboard, bracketText, selectedNodes } = get();
+                if (!arrowClipboard || selectedNodes.size === 0) return;
+                const { tree } = parse(bracketText);
+                if (!tree) return;
+                const sourceStart = findHighestSelectedNode(bracketText, selectedNodes);
+                if (sourceStart == null) return;
+                const node = findTreeNode(tree, sourceStart);
+                if (!node || node.sourceEnd == null) return;
+                let newText: string;
+                if (node.arrowSyntaxEnd != null) {
+                    newText =
+                        bracketText.slice(0, node.arrowSyntaxEnd) +
+                        "; " + arrowClipboard +
+                        bracketText.slice(node.arrowSyntaxEnd);
+                } else {
+                    newText =
+                        bracketText.slice(0, node.sourceEnd) +
+                        " -> " + arrowClipboard +
+                        bracketText.slice(node.sourceEnd);
+                }
+                pushSnapshot(get());
+                future = [];
+                lastTypingOp = "none";
+                set({ bracketText: newText, arrowClipboard: null });
+            },
         }),
         {
             name: "treestump-project",
@@ -400,6 +570,7 @@ export const useProjectStore = create<ProjectStore>()(
                 settings: state.settings,
                 canvas: state.canvas,
                 autoFit: state.autoFit,
+                arrowSettings: state.arrowSettings,
             }),
         },
     ),

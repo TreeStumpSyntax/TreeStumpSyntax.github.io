@@ -1,4 +1,4 @@
-import type { TreeNode } from "../types";
+import type { ArrowDefinition, TreeNode } from "../types";
 
 export interface ParseResult {
   tree: TreeNode | null;
@@ -14,10 +14,12 @@ export interface ParseError {
  * Parse labelled bracket notation into a TreeNode.
  *
  * Grammar:
- *   Tree     -> '[' Label Children ']'
+ *   Tree     -> '[' Label ArrowTargets? Children ']'
  *   Children -> (Tree | Leaf)*
  *   Label    -> non-whitespace, non-bracket characters
- *   Leaf     -> non-bracket characters (trimmed)
+ *   Leaf     -> non-bracket characters (trimmed), may contain '-> targets'
+ *   ArrowTargets -> '->' Target (';' Target)*
+ *   Target   -> non-whitespace, non-bracket, non-semicolon characters
  *
  * Supports error recovery: unmatched brackets are reported but parsing
  * continues, producing a partial tree when possible.
@@ -54,6 +56,17 @@ export function parse(input: string): ParseResult {
     return text.trim();
   }
 
+  function readArrowTargets(): string[] {
+    let text = "";
+    while (pos < input.length && input[pos] !== "[" && input[pos] !== "]") {
+      text += advance();
+    }
+    return text
+      .split(";")
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+
   function parseNode(): TreeNode | null {
     skipWhitespace();
 
@@ -69,6 +82,28 @@ export function parse(input: string): ParseResult {
       errors.push({ position: openPos, message: "Expected label after '['" });
     }
 
+    // Check for arrow targets after label (non-terminal arrows)
+    let arrowTargets: string[] | undefined;
+    let arrowSyntaxStart: number | undefined;
+    let arrowSyntaxEnd: number | undefined;
+    const savedPos = pos;
+    skipWhitespace();
+    if (pos + 1 < input.length && input[pos] === "-" && input[pos + 1] === ">") {
+      const arrowPos = pos;
+      arrowSyntaxStart = pos;
+      pos += 2; // consume '->'
+      skipWhitespace();
+      const targets = readArrowTargets();
+      arrowSyntaxEnd = pos;
+      if (targets.length === 0) {
+        errors.push({ position: arrowPos, message: "Expected target after '->'" });
+      } else {
+        arrowTargets = targets;
+      }
+    } else {
+      pos = savedPos; // restore position if no arrow found
+    }
+
     const children: TreeNode[] = [];
 
     while (pos < input.length) {
@@ -76,7 +111,13 @@ export function parse(input: string): ParseResult {
 
       if (peek() === "]") {
         advance(); // consume ']'
-        return { label: label || "?", children, sourceStart: labelStart, sourceEnd: labelEnd };
+        return {
+          label: label || "?",
+          children,
+          sourceStart: labelStart,
+          sourceEnd: labelEnd,
+          ...(arrowTargets ? { arrowTargets, arrowSyntaxStart, arrowSyntaxEnd } : {}),
+        };
       }
 
       if (peek() === "[") {
@@ -86,15 +127,58 @@ export function parse(input: string): ParseResult {
         const rawStart = pos;
         const leafText = readLeafText();
         if (leafText) {
+          // Check for arrow in terminal text
+          const arrowIdx = leafText.indexOf("->");
+          let actualLabel: string;
+          let leafArrowTargets: string[] | undefined;
+
+          if (arrowIdx >= 0) {
+            actualLabel = leafText.slice(0, arrowIdx).trim();
+            const targetStr = leafText.slice(arrowIdx + 2).trim();
+            const targets = targetStr
+              .split(";")
+              .map((t) => t.trim())
+              .filter(Boolean);
+            if (targets.length === 0) {
+              errors.push({
+                position: rawStart + arrowIdx,
+                message: "Expected target after '->'",
+              });
+            } else {
+              leafArrowTargets = targets;
+            }
+            if (!actualLabel) {
+              actualLabel = leafText; // fallback if nothing before ->
+            }
+          } else {
+            actualLabel = leafText;
+          }
+
           const raw = input.slice(rawStart, pos);
           const leadingWS = raw.length - raw.trimStart().length;
-          const trailingWS = raw.length - raw.trimEnd().length;
+          // For arrow leaves, sourceEnd should cover only the actual label, not the arrow syntax
+          let effectiveEnd: number;
+          if (arrowIdx >= 0) {
+            // Find the end of the actual label in the raw text
+            const rawBeforeArrow = raw.slice(0, raw.indexOf("->"));
+            const trimmedBeforeArrow = rawBeforeArrow.trimEnd();
+            effectiveEnd = rawStart + leadingWS + trimmedBeforeArrow.trimStart().length;
+          } else {
+            const trailingWS = raw.length - raw.trimEnd().length;
+            effectiveEnd = pos - trailingWS;
+          }
+
           children.push({
-            label: leafText,
+            label: actualLabel,
             children: [],
             sourceStart: rawStart + leadingWS,
-            sourceEnd: pos - trailingWS,
+            sourceEnd: effectiveEnd,
             terminal: true,
+            ...(leafArrowTargets ? {
+              arrowTargets: leafArrowTargets,
+              arrowSyntaxStart: rawStart + raw.indexOf("->"),
+              arrowSyntaxEnd: rawStart + raw.trimEnd().length,
+            } : {}),
           });
         }
       }
@@ -102,7 +186,13 @@ export function parse(input: string): ParseResult {
 
     // Reached end of input without closing bracket
     errors.push({ position: openPos, message: "Unmatched '['" });
-    return { label: label || "?", children, sourceStart: labelStart, sourceEnd: labelEnd };
+    return {
+      label: label || "?",
+      children,
+      sourceStart: labelStart,
+      sourceEnd: labelEnd,
+      ...(arrowTargets ? { arrowTargets, arrowSyntaxStart, arrowSyntaxEnd } : {}),
+    };
   }
 
   skipWhitespace();
@@ -132,6 +222,13 @@ export function parse(input: string): ParseResult {
 
   const tree = parseNode();
 
+  // Validate arrow targets
+  if (tree) {
+    const arrows = extractArrows(tree);
+    const arrowErrors = validateArrows(tree, arrows);
+    errors.push(...arrowErrors);
+  }
+
   // Check for extra closing brackets
   skipWhitespace();
   while (pos < input.length) {
@@ -148,4 +245,51 @@ export function parse(input: string): ParseResult {
   }
 
   return { tree, errors };
+}
+
+/** Collect all arrow definitions from a parsed tree. */
+export function extractArrows(tree: TreeNode): ArrowDefinition[] {
+  const arrows: ArrowDefinition[] = [];
+  function visit(node: TreeNode) {
+    if (node.arrowTargets) {
+      for (const target of node.arrowTargets) {
+        arrows.push({ sourceLabel: node.label, targetLabel: target });
+      }
+    }
+    for (const child of node.children) visit(child);
+  }
+  visit(tree);
+  return arrows;
+}
+
+/** Check that all arrow target labels exist as node labels in the tree. */
+export function validateArrows(
+  tree: TreeNode,
+  arrows: ArrowDefinition[],
+): ParseError[] {
+  if (arrows.length === 0) return [];
+
+  const allLabels = new Set<string>();
+  function collectLabels(node: TreeNode) {
+    allLabels.add(node.label);
+    for (const child of node.children) collectLabels(child);
+  }
+  collectLabels(tree);
+
+  const errors: ParseError[] = [];
+  function visit(node: TreeNode) {
+    if (node.arrowTargets) {
+      for (const target of node.arrowTargets) {
+        if (!allLabels.has(target)) {
+          errors.push({
+            position: node.sourceStart ?? 0,
+            message: `Arrow target "${target}" not found in tree`,
+          });
+        }
+      }
+    }
+    for (const child of node.children) visit(child);
+  }
+  visit(tree);
+  return errors;
 }

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { matchBrackets, type BracketMatch } from "../lib/bracketMatcher";
 import { handleBracketKey } from "../lib/bracketPairing";
+import { parse, extractArrows, validateArrows } from "../lib/parser";
 import { getSelectedPositions, getSelectedRanges } from "../lib/selection";
 import { useProjectStore, type TextEditType } from "../stores/projectStore";
+import type { TreeNode } from "../types";
 
 const BRACKET_COLORS = [
     "#3b6cf3",
@@ -73,9 +75,43 @@ function colorize(
     return spans;
 }
 
+function highlightArrowSyntax(
+    spans: Span[],
+    arrowColorMap: Map<number, string>,
+): Span[] {
+    const result: Span[] = [];
+    let charOffset = 0;
+    for (const span of spans) {
+        if (span.color) {
+            result.push(span);
+            charOffset += span.text.length;
+            continue;
+        }
+        const parts = span.text.split(/(->|;)/);
+        let localOff = 0;
+        for (const part of parts) {
+            const absPos = charOffset + localOff;
+            if ((part === "->" || part === ";") && arrowColorMap.has(absPos)) {
+                result.push({
+                    text: part,
+                    color: arrowColorMap.get(absPos)!,
+                    selected: span.selected,
+                });
+            } else if (part) {
+                result.push({ ...span, text: part });
+            }
+            localOff += part.length;
+        }
+        charOffset += span.text.length;
+    }
+    return result;
+}
+
 export default function BracketEditor() {
     const bracketText = useProjectStore((s) => s.bracketText);
     const setBracketText = useProjectStore((s) => s.setBracketText);
+    const defaultArrowColor = useProjectStore((s) => s.settings.defaultArrowColor);
+    const arrowSettings = useProjectStore((s) => s.arrowSettings);
     const cursorPos = useProjectStore((s) => s.cursorPos);
     const setCursorPos = useProjectStore((s) => s.setCursorPos);
     const selectedNodes = useProjectStore((s) => s.selectedNodes);
@@ -117,18 +153,52 @@ export default function BracketEditor() {
         return getSelectedPositions(ranges);
     }, [bracketText, selectedNodes]);
 
+    const arrowColorMap = useMemo(() => {
+        const { tree } = parse(bracketText);
+        if (!tree) return new Map<number, string>();
+        const map = new Map<number, string>();
+        function visit(node: TreeNode) {
+            if (
+                node.arrowSyntaxStart != null &&
+                node.arrowSyntaxEnd != null &&
+                node.arrowTargets?.length
+            ) {
+                const key = `${node.label}::${node.arrowTargets[0]}`;
+                const color = arrowSettings[key]?.color ?? defaultArrowColor;
+                map.set(node.arrowSyntaxStart, color);
+                for (let i = node.arrowSyntaxStart + 2; i < node.arrowSyntaxEnd; i++) {
+                    if (bracketText[i] === ";") map.set(i, color);
+                }
+            }
+            for (const child of node.children) visit(child);
+        }
+        visit(tree);
+        return map;
+    }, [bracketText, arrowSettings, defaultArrowColor]);
+
     const spans = useMemo(
         () =>
-            colorize(
-                bracketText,
-                bracketMatch,
-                highlightPositions,
-                selectedPositions,
+            highlightArrowSyntax(
+                colorize(
+                    bracketText,
+                    bracketMatch,
+                    highlightPositions,
+                    selectedPositions,
+                ),
+                arrowColorMap,
             ),
-        [bracketText, bracketMatch, highlightPositions, selectedPositions],
+        [bracketText, bracketMatch, highlightPositions, selectedPositions, arrowColorMap],
     );
 
     const unmatchedCount = bracketMatch.unmatched.size;
+
+    const arrowErrorCount = useMemo(() => {
+        const { tree } = parse(bracketText);
+        if (!tree) return 0;
+        const arrows = extractArrows(tree);
+        if (arrows.length === 0) return 0;
+        return validateArrows(tree, arrows).length;
+    }, [bracketText]);
 
     const updateCursorPos = useCallback(() => {
         const ta = textareaRef.current;
@@ -179,6 +249,17 @@ export default function BracketEditor() {
                             <span className="min-w-0 truncate font-mono text-[10px] tracking-wider text-error">
                                 {unmatchedCount} unmatched bracket
                                 {unmatchedCount !== 1 && "s"}
+                            </span>
+                        </>
+                    )}
+                    {arrowErrorCount > 0 && (
+                        <>
+                            <span className="shrink-0 text-[10px] text-secondary/30">
+                                &middot;
+                            </span>
+                            <span className="min-w-0 truncate font-mono text-[10px] tracking-wider text-error">
+                                {arrowErrorCount} invalid arrow target
+                                {arrowErrorCount !== 1 && "s"}
                             </span>
                         </>
                     )}

@@ -5,6 +5,12 @@ export interface TreeNode {
   sourceEnd?: number;
   /** True for plain-text leaves (terminal words), false for bracketed nodes. */
   terminal?: boolean;
+  /** Labels of nodes this node has arrows pointing to. */
+  arrowTargets?: string[];
+  /** Source position of the '->' token for this node's arrow syntax. */
+  arrowSyntaxStart?: number;
+  /** Source position just after the last arrow target character. */
+  arrowSyntaxEnd?: number;
 }
 
 export interface PositionedNode {
@@ -31,6 +37,7 @@ export interface Settings {
   coloring: boolean;
   nodeColor: string;
   leafColor: string;
+  defaultArrowColor: string;
   alignment: Alignment;
   fontFamily: string;
   nodeSpacing: number;
@@ -46,9 +53,36 @@ export interface CanvasState {
   zoom: number;
 }
 
+export interface ArrowDefinition {
+  sourceLabel: string;
+  targetLabel: string;
+}
+
+export type ArrowLineStyle = "solid" | "dashed" | "dotted";
+export type ArrowRouting = "below" | "above";
+export type ArrowCurveStyle = "bezier" | "boxy";
+export type ArrowHeadStyle = "filled" | "open" | "none";
+
+export interface ArrowSettings {
+  lineStyle: ArrowLineStyle;
+  routing: ArrowRouting;
+  curveStyle: ArrowCurveStyle;
+  arrowHeadStyle: ArrowHeadStyle;
+  color: string;
+}
+
+export const DEFAULT_ARROW_SETTINGS: ArrowSettings = {
+  lineStyle: "solid",
+  routing: "below",
+  curveStyle: "bezier",
+  arrowHeadStyle: "filled",
+  color: "#1a1a1a",
+};
+
 export interface ProjectState {
   projectName: string;
   bracketText: string;
   settings: Settings;
   canvas: CanvasState;
+  arrowSettings?: Record<string, ArrowSettings>;
 }

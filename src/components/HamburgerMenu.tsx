@@ -249,6 +249,7 @@ export default function HamburgerMenu({
     const loadProject = useProjectStore((s) => s.loadProject);
     const bracketText = useProjectStore((s) => s.bracketText);
     const canvas = useProjectStore((s) => s.canvas);
+    const arrowSettings = useProjectStore((s) => s.arrowSettings);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -403,6 +404,13 @@ export default function HamburgerMenu({
                                         updateSettings({ leafColor: v }, true)
                                     }
                                 />
+                                <ColorSetting
+                                    label="Arrow color"
+                                    value={settings.defaultArrowColor}
+                                    onChange={(v) =>
+                                        updateSettings({ defaultArrowColor: v }, true)
+                                    }
+                                />
 
                                 <div className="mt-4 border-t border-border pt-3">
                                     <p className="mb-1 font-mono text-xs tracking-wide text-secondary uppercase">
@@ -530,6 +538,7 @@ export default function HamburgerMenu({
                                                     bracketText,
                                                     settings,
                                                     canvas,
+                                                    arrowSettings,
                                                 })
                                             }
                                             className="rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-surface-secondary active:scale-[0.98]"
