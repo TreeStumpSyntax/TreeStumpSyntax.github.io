@@ -37,6 +37,7 @@
 - Camera drag should be disabled when auto-fit is on
 - Remove leading and trailing whitespace in edit panel
 - Add demo video for arrows
+- Remove home screen entirely and have people go straight to the edit page (tutorial link gets moved to settings)
 
 ## Low Priority
 
