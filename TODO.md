@@ -5,6 +5,7 @@
 - Add a warning message to save before you exit a project or load a new one
 - Add support for arrows - and look into other more advanced tree drawing techniques
 - Add LaTeX rendering support
+- Lots of visual glitches with the inline editing - mostly the cursor being above the text, and brackets overlapping with text and bracket highlighting glow being offset from brackets
 
 ## Medium Priority
 
@@ -23,6 +24,8 @@
 - Add zoom level for auto-fit mode
 - Camera drag should be disabled when auto-fit is on
 - Remove leading and trailing whitespace in edit panel
+- Spacing issues - edit panel sometimes goes over tree on autozoom mode - could be a issue with triangles idk
+- when you export a project, and then import it, the project name doesn't match the file name it was exported with
 
 ## Low Priority
 
