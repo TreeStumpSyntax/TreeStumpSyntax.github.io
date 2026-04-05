@@ -772,16 +772,17 @@ export default function TreeView() {
                 return;
             }
             clearSelection();
+            const rawLabel = bracketText.slice(node.sourceStart!, node.sourceEnd!);
             setEditing({
                 prefix: bracketText.slice(0, node.sourceStart),
                 suffix: bracketText.slice(node.sourceEnd),
                 x: node.x,
                 y: node.y,
-                label: node.label,
+                label: rawLabel,
                 color,
                 fontWeight,
             });
-            setEditValue(node.label);
+            setEditValue(rawLabel);
             setCursorPos(node.sourceEnd);
         },
         [bracketText, setCursorPos, toggleNodeSelection, clearSelection, editing, commitEdit],

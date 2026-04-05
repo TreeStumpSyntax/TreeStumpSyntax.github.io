@@ -5,6 +5,8 @@ export interface TreeNode {
   sourceEnd?: number;
   /** True for plain-text leaves (terminal words), false for bracketed nodes. */
   terminal?: boolean;
+  /** True when the label was suffixed with `~` to force triangle rendering. */
+  forceTriangle?: boolean;
 }
 
 export interface PositionedNode {

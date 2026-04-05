@@ -1,5 +1,62 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router";
+import { matchBrackets } from "../lib/bracketMatcher";
 import { useProjectStore } from "../stores/projectStore";
+
+const BRACKET_COLORS = [
+    "#3b6cf3",
+    "#e5623a",
+    "#1a9e5c",
+    "#b547c1",
+    "#d4a017",
+    "#0ea5c9",
+    "#e34080",
+    "#6d5ede",
+];
+const ERROR_COLOR = "#e53e3e";
+const BRACKETS = new Set(["[", "]", "(", ")"]);
+
+function BracketSnippet({ children }: { children: string }) {
+    const spans = useMemo(() => {
+        const match = matchBrackets(children);
+        const result: { text: string; color?: string }[] = [];
+        let buffer = "";
+        for (let i = 0; i < children.length; i++) {
+            const ch = children[i];
+            if (BRACKETS.has(ch)) {
+                if (buffer) {
+                    result.push({ text: buffer });
+                    buffer = "";
+                }
+                const isUnmatched = match.unmatched.has(i);
+                const color = isUnmatched
+                    ? ERROR_COLOR
+                    : BRACKET_COLORS[
+                          match.depths.get(i)! % BRACKET_COLORS.length
+                      ];
+                result.push({ text: ch, color });
+            } else {
+                buffer += ch;
+            }
+        }
+        if (buffer) result.push({ text: buffer });
+        return result;
+    }, [children]);
+
+    return (
+        <div className="rounded-xl border border-border bg-surface p-4 font-mono text-sm text-primary">
+            {spans.map((s, i) =>
+                s.color ? (
+                    <span key={i} style={{ color: s.color, fontWeight: 600 }}>
+                        {s.text}
+                    </span>
+                ) : (
+                    <span key={i}>{s.text}</span>
+                ),
+            )}
+        </div>
+    );
+}
 
 const IS_MAC =
     typeof navigator !== "undefined" &&
@@ -88,9 +145,9 @@ export default function TutorialPage() {
                             of brackets contains a label followed by its
                             children:
                         </p>
-                        <div className="rounded-xl border border-border bg-surface p-4 font-mono text-sm text-primary">
+                        <BracketSnippet>
                             [S [NP John][VP [V saw][NP Mary]]]
-                        </div>
+                        </BracketSnippet>
                         <Video src="/videos/1e_cropped.gif" />
                     </Section>
 
@@ -148,6 +205,32 @@ export default function TutorialPage() {
                             another node and press <Key>{MOD}</Key> <Key>V</Key>{" "}
                             to paste it as a child of that node.
                         </p>
+                    </Section>
+
+                    <Section title="Triangles">
+                        <p>
+                            Multi-word terminal nodes automatically render with
+                            triangles. Add <Code>~</Code> to a parent node to
+                            force a triangle over a single word.
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <BracketSnippet>
+                                    [DP [D' [D the] [NP~ tree]]]
+                                </BracketSnippet>
+                                <img
+                                    src="/images/triangles1.png"
+                                    className="w-full rounded-xl border border-border bg-surface"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <BracketSnippet>[DP the tree]</BracketSnippet>
+                                <img
+                                    src="/images/triangles2.png"
+                                    className="w-full rounded-xl border border-border bg-surface"
+                                />
+                            </div>
+                        </div>
                     </Section>
 
                     <Section title="Export">
