@@ -54,7 +54,7 @@ function positionNodes(
     !isLeaf &&
     node.children.length === 1 &&
     node.children[0].children.length === 0 &&
-    node.children[0].label.includes(" ");
+    (node.children[0].label.includes(" ") || node.forceTriangle === true);
 
   let subscript: number | null = null;
   if (subscriptMap) {

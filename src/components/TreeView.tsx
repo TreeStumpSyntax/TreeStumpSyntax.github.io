@@ -792,17 +792,35 @@ export default function TreeView() {
                 return;
             }
             clearSelection();
+            const prefix = bracketText.slice(0, node.sourceStart!);
+            let editContent = bracketText.slice(node.sourceStart!, node.sourceEnd!);
+            let suffix = bracketText.slice(node.sourceEnd!);
+            if (node.children.length > 0) {
+                // For non-terminals with children, expand the edit content to include
+                // all children so that typing appends as the rightmost child instead
+                // of inserting before existing children.
+                let openPos = prefix.length - 1;
+                while (openPos >= 0 && bracketText[openPos] !== "[") openPos--;
+                if (openPos >= 0) {
+                    const bm = matchBrackets(bracketText);
+                    const closePos = bm.pairs.get(openPos);
+                    if (closePos != null) {
+                        editContent = bracketText.slice(node.sourceStart!, closePos);
+                        suffix = bracketText.slice(closePos);
+                    }
+                }
+            }
             setEditing({
-                prefix: bracketText.slice(0, node.sourceStart),
-                suffix: bracketText.slice(node.sourceEnd),
+                prefix,
+                suffix,
                 x: node.x,
                 y: node.y,
-                label: node.label,
+                label: editContent,
                 color,
                 fontWeight,
             });
-            setEditValue(node.label);
-            setCursorPos(node.sourceEnd);
+            setEditValue(editContent);
+            setCursorPos(node.sourceStart! + editContent.length);
         },
         [bracketText, setCursorPos, toggleNodeSelection, clearSelection, editing, commitEdit],
     );

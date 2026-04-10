@@ -19,6 +19,7 @@
 - Look into other more advanced tree drawing techniques
 - Add LaTeX rendering support
 - Ability to create new nodes while in interactive node edit mode (see https://klpkt.no/ling/tree.htm)
+- Lots of visual glitches with the inline editing - mostly the cursor being above the text, and brackets overlapping with text and bracket highlighting glow being offset from brackets
 
 ## Medium Priority
 
@@ -38,6 +39,8 @@
 - Remove leading and trailing whitespace in edit panel
 - Add demo video for arrows
 - Remove home screen entirely and have people go straight to the edit page (tutorial link gets moved to settings)
+- Spacing issues - edit panel sometimes goes over tree on autozoom mode - could be a issue with triangles idk
+- when you export a project, and then import it, the project name doesn't match the file name it was exported with
 
 ## Low Priority
 

@@ -76,9 +76,9 @@ export function parse(input: string): ParseResult {
 
     skipWhitespace();
     const labelStart = pos;
-    const label = readLabel();
+    const rawLabel = readLabel() || "?";
     const labelEnd = pos;
-    if (!label) {
+    if (rawLabel === "?") {
       errors.push({ position: openPos, message: "Expected label after '['" });
     }
 
@@ -104,6 +104,9 @@ export function parse(input: string): ParseResult {
       pos = savedPos; // restore position if no arrow found
     }
 
+    const forceTriangle = rawLabel.endsWith("~");
+    const label = forceTriangle ? rawLabel.slice(0, -1) || "?" : rawLabel;
+
     const children: TreeNode[] = [];
 
     while (pos < input.length) {
@@ -112,12 +115,12 @@ export function parse(input: string): ParseResult {
       if (peek() === "]") {
         advance(); // consume ']'
         return {
-          label: label || "?",
+          label,
           children,
           sourceStart: labelStart,
           sourceEnd: labelEnd,
           ...(arrowTargets ? { arrowTargets, arrowSyntaxStart, arrowSyntaxEnd } : {}),
-        };
+       , ...(forceTriangle && { forceTriangle: true }) };
       }
 
       if (peek() === "[") {
@@ -187,10 +190,10 @@ export function parse(input: string): ParseResult {
     // Reached end of input without closing bracket
     errors.push({ position: openPos, message: "Unmatched '['" });
     return {
-      label: label || "?",
+      label,
       children,
       sourceStart: labelStart,
-      sourceEnd: labelEnd,
+      sourceEnd: labelEnd, ...(forceTriangle && { forceTriangle: true }),
       ...(arrowTargets ? { arrowTargets, arrowSyntaxStart, arrowSyntaxEnd } : {}),
     };
   }
