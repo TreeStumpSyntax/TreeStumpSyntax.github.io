@@ -120,7 +120,7 @@ export function parse(input: string): ParseResult {
           sourceStart: labelStart,
           sourceEnd: labelEnd,
           ...(arrowTargets ? { arrowTargets, arrowSyntaxStart, arrowSyntaxEnd } : {}),
-       , ...(forceTriangle && { forceTriangle: true }) };
+          ...(forceTriangle && { forceTriangle: true }) };
       }
 
       if (peek() === "[") {

@@ -87,6 +87,9 @@ function computeArrowheadPath(
 
 const SLOT_SPACING = FONT_SIZE * 1.5;
 const BASE_CLEARANCE = FONT_SIZE * 2;
+const ARROWHEAD_SIZE = 8;
+// Distance from arrowhead tip to its base (height of the isoceles triangle)
+const ARROWHEAD_SETBACK = ARROWHEAD_SIZE * Math.cos(Math.PI / 6);
 
 export function computeArrowPaths(
   root: PositionedNode,
@@ -145,24 +148,35 @@ export function computeArrowPaths(
     const srcY = srcPos.y + FONT_SIZE * 0.6;
     const tgtY = tgtPos.y + FONT_SIZE * 0.6;
     const clearanceY = maxY + BASE_CLEARANCE + i * SLOT_SPACING;
+    const hasHead = settings.arrowHeadStyle !== "none";
 
     let path: string;
-    if (settings.curveStyle === "boxy") {
-      path = boxyPath(srcPos.x, srcY, tgtPos.x, tgtY, clearanceY);
-    } else {
-      path = bezierPath(srcPos.x, srcY, tgtPos.x, tgtY, clearanceY);
-    }
+    let arrowheadPath: string | null;
 
-    // Arrowhead: compute direction of arrival at target
-    const arrowheadFromY =
-      settings.curveStyle === "boxy" ? clearanceY : clearanceY;
-    const arrowheadPath = computeArrowheadPath(
-      tgtPos.x,
-      tgtY,
-      tgtPos.x,
-      arrowheadFromY,
-      settings.arrowHeadStyle,
-    );
+    if (settings.curveStyle === "boxy") {
+      // Boxy arrives vertically; setback is pure-Y.
+      const pathTgtY = hasHead ? tgtY + ARROWHEAD_SETBACK : tgtY;
+      path = boxyPath(srcPos.x, srcY, tgtPos.x, pathTgtY, clearanceY);
+      arrowheadPath = computeArrowheadPath(
+        tgtPos.x, tgtY, tgtPos.x, clearanceY, settings.arrowHeadStyle,
+      );
+    } else {
+      // U-shaped bezier: both control points at (midX, cpY).
+      // cpY is scaled so the curve's actual bottom (quadratic midpoint formula:
+      // 0.25*srcY + 0.5*cpY + 0.25*tgtY) lands at clearanceY, giving a full
+      // U that reaches the routing level rather than hovering above it.
+      const midX = (srcPos.x + tgtPos.x) / 2;
+      const cpY = 2 * clearanceY - 0.5 * (srcY + tgtY);
+      const dx = tgtPos.x - midX;
+      const dy = tgtY - cpY; // negative (cpY is below the tree)
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const pathTgtX = hasHead ? tgtPos.x - (dx / len) * ARROWHEAD_SETBACK : tgtPos.x;
+      const pathTgtY = hasHead ? tgtY - (dy / len) * ARROWHEAD_SETBACK : tgtY;
+      path = `M${srcPos.x},${srcY} C${midX},${cpY} ${midX},${cpY} ${pathTgtX},${pathTgtY}`;
+      arrowheadPath = computeArrowheadPath(
+        tgtPos.x, tgtY, midX, cpY, settings.arrowHeadStyle,
+      );
+    }
 
     results.push({
       key,
@@ -185,21 +199,30 @@ export function computeArrowPaths(
     const srcY = srcPos.y - FONT_SIZE * 0.7;
     const tgtY = tgtPos.y - FONT_SIZE * 0.7;
     const clearanceY = minY - BASE_CLEARANCE - i * SLOT_SPACING;
+    const hasHead = settings.arrowHeadStyle !== "none";
 
     let path: string;
-    if (settings.curveStyle === "boxy") {
-      path = boxyPath(srcPos.x, srcY, tgtPos.x, tgtY, clearanceY);
-    } else {
-      path = bezierPath(srcPos.x, srcY, tgtPos.x, tgtY, clearanceY);
-    }
+    let arrowheadPath: string | null;
 
-    const arrowheadPath = computeArrowheadPath(
-      tgtPos.x,
-      tgtY,
-      tgtPos.x,
-      clearanceY,
-      settings.arrowHeadStyle,
-    );
+    if (settings.curveStyle === "boxy") {
+      const pathTgtY = hasHead ? tgtY - ARROWHEAD_SETBACK : tgtY;
+      path = boxyPath(srcPos.x, srcY, tgtPos.x, pathTgtY, clearanceY);
+      arrowheadPath = computeArrowheadPath(
+        tgtPos.x, tgtY, tgtPos.x, clearanceY, settings.arrowHeadStyle,
+      );
+    } else {
+      const midX = (srcPos.x + tgtPos.x) / 2;
+      const cpY = 2 * clearanceY - 0.5 * (srcY + tgtY);
+      const dx = tgtPos.x - midX;
+      const dy = tgtY - cpY; // positive (cpY is above the tree)
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const pathTgtX = hasHead ? tgtPos.x - (dx / len) * ARROWHEAD_SETBACK : tgtPos.x;
+      const pathTgtY = hasHead ? tgtY - (dy / len) * ARROWHEAD_SETBACK : tgtY;
+      path = `M${srcPos.x},${srcY} C${midX},${cpY} ${midX},${cpY} ${pathTgtX},${pathTgtY}`;
+      arrowheadPath = computeArrowheadPath(
+        tgtPos.x, tgtY, midX, cpY, settings.arrowHeadStyle,
+      );
+    }
 
     results.push({
       key,
@@ -217,15 +240,6 @@ export function computeArrowPaths(
   return results;
 }
 
-function bezierPath(
-  srcX: number,
-  srcY: number,
-  tgtX: number,
-  tgtY: number,
-  clearanceY: number,
-): string {
-  return `M${srcX},${srcY} C${srcX},${clearanceY} ${tgtX},${clearanceY} ${tgtX},${tgtY}`;
-}
 
 function boxyPath(
   srcX: number,
