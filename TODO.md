@@ -3,9 +3,7 @@
 # Arrow Edits
 
 - Add arrow labels
-- Fix arrow head looking weird
 - Fix "above tree" setting looking weird
-- Ends of arrow lines should be sharp (not rounded)
 - Autocomplete when typing arrow destination?
 - Rework syntax for multiple arrows from one node
 - For arrows from non-terminal nodes, arrow start shouldn't be connected to normal edges

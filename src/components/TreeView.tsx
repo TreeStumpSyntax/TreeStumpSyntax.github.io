@@ -974,7 +974,7 @@ export default function TreeView() {
                                     fill="none"
                                     stroke={as.color}
                                     strokeWidth={STROKE_WIDTH + 4}
-                                    strokeLinecap="round"
+                                    strokeLinecap="butt"
                                     opacity={0.25}
                                     pointerEvents="none"
                                 />
@@ -985,7 +985,7 @@ export default function TreeView() {
                                 stroke={as.color}
                                 strokeWidth={STROKE_WIDTH}
                                 strokeDasharray={dashArray}
-                                strokeLinecap="round"
+                                strokeLinecap="butt"
                                 pointerEvents="none"
                             />
                             {arrow.arrowheadPath && (

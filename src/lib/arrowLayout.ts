@@ -161,20 +161,13 @@ export function computeArrowPaths(
         tgtPos.x, tgtY, tgtPos.x, clearanceY, settings.arrowHeadStyle,
       );
     } else {
-      // U-shaped bezier: both control points at (midX, cpY).
-      // cpY is scaled so the curve's actual bottom (quadratic midpoint formula:
-      // 0.25*srcY + 0.5*cpY + 0.25*tgtY) lands at clearanceY, giving a full
-      // U that reaches the routing level rather than hovering above it.
-      const midX = (srcPos.x + tgtPos.x) / 2;
+      // U-shaped bezier: control points directly below source and target,
+      // so the curve departs/arrives vertically rather than diagonally.
       const cpY = 2 * clearanceY - 0.5 * (srcY + tgtY);
-      const dx = tgtPos.x - midX;
-      const dy = tgtY - cpY; // negative (cpY is below the tree)
-      const len = Math.sqrt(dx * dx + dy * dy);
-      const pathTgtX = hasHead ? tgtPos.x - (dx / len) * ARROWHEAD_SETBACK : tgtPos.x;
-      const pathTgtY = hasHead ? tgtY - (dy / len) * ARROWHEAD_SETBACK : tgtY;
-      path = `M${srcPos.x},${srcY} C${midX},${cpY} ${midX},${cpY} ${pathTgtX},${pathTgtY}`;
+      const pathTgtY = hasHead ? tgtY + ARROWHEAD_SETBACK : tgtY;
+      path = `M${srcPos.x},${srcY} C${srcPos.x},${cpY} ${tgtPos.x},${cpY} ${tgtPos.x},${pathTgtY}`;
       arrowheadPath = computeArrowheadPath(
-        tgtPos.x, tgtY, midX, cpY, settings.arrowHeadStyle,
+        tgtPos.x, tgtY, tgtPos.x, cpY, settings.arrowHeadStyle,
       );
     }
 
@@ -211,16 +204,12 @@ export function computeArrowPaths(
         tgtPos.x, tgtY, tgtPos.x, clearanceY, settings.arrowHeadStyle,
       );
     } else {
-      const midX = (srcPos.x + tgtPos.x) / 2;
+      // U-shaped bezier: control points directly above source and target.
       const cpY = 2 * clearanceY - 0.5 * (srcY + tgtY);
-      const dx = tgtPos.x - midX;
-      const dy = tgtY - cpY; // positive (cpY is above the tree)
-      const len = Math.sqrt(dx * dx + dy * dy);
-      const pathTgtX = hasHead ? tgtPos.x - (dx / len) * ARROWHEAD_SETBACK : tgtPos.x;
-      const pathTgtY = hasHead ? tgtY - (dy / len) * ARROWHEAD_SETBACK : tgtY;
-      path = `M${srcPos.x},${srcY} C${midX},${cpY} ${midX},${cpY} ${pathTgtX},${pathTgtY}`;
+      const pathTgtY = hasHead ? tgtY - ARROWHEAD_SETBACK : tgtY;
+      path = `M${srcPos.x},${srcY} C${srcPos.x},${cpY} ${tgtPos.x},${cpY} ${tgtPos.x},${pathTgtY}`;
       arrowheadPath = computeArrowheadPath(
-        tgtPos.x, tgtY, midX, cpY, settings.arrowHeadStyle,
+        tgtPos.x, tgtY, tgtPos.x, cpY, settings.arrowHeadStyle,
       );
     }
 
