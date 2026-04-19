@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { exportPng, exportProject, exportSvg } from "../lib/export";
 import { findHighestSelectedNode } from "../lib/treeOperations";
 import { useProjectStore } from "../stores/projectStore";
+import ArrowPopover from "./ArrowPopover";
 import BracketEditor from "./BracketEditor";
 import Canvas from "./Canvas";
 import HamburgerMenu from "./HamburgerMenu";
@@ -18,6 +19,14 @@ export default function EditorPage() {
     const redo = useProjectStore((s) => s.redo);
     const selectedNodes = useProjectStore((s) => s.selectedNodes);
     const clearSelection = useProjectStore((s) => s.clearSelection);
+    const arrowPopover = useProjectStore((s) => s.arrowPopover);
+    const setArrowPopover = useProjectStore((s) => s.setArrowPopover);
+    const arrowSettings = useProjectStore((s) => s.arrowSettings);
+    const selectedArrow = useProjectStore((s) => s.selectedArrow);
+    const deleteSelectedArrow = useProjectStore((s) => s.deleteSelectedArrow);
+    const cutSelectedArrow = useProjectStore((s) => s.cutSelectedArrow);
+    const arrowClipboard = useProjectStore((s) => s.arrowClipboard);
+    const pasteArrow = useProjectStore((s) => s.pasteArrow);
     const deleteSelectedNodes = useProjectStore((s) => s.deleteSelectedNodes);
     const copySelectedNodes = useProjectStore((s) => s.copySelectedNodes);
     const pasteAsChild = useProjectStore((s) => s.pasteAsChild);
@@ -44,7 +53,7 @@ export default function EditorPage() {
                 exportPng(projectName);
             } else if (mod && !e.shiftKey && key === "s") {
                 e.preventDefault();
-                exportProject({ projectName, bracketText, settings, canvas });
+                exportProject({ projectName, bracketText, settings, canvas, arrowSettings });
             } else if (
                 mod &&
                 !e.shiftKey &&
@@ -60,12 +69,28 @@ export default function EditorPage() {
                 !e.shiftKey &&
                 key === "x" &&
                 !inTextInput &&
+                selectedArrow
+            ) {
+                e.preventDefault();
+                const sepIdx = selectedArrow.indexOf("::");
+                if (sepIdx >= 0) {
+                    navigator.clipboard.writeText("-> " + selectedArrow.slice(sepIdx + 2)).catch(() => {});
+                }
+                cutSelectedArrow();
+            } else if (
+                mod &&
+                !e.shiftKey &&
+                key === "x" &&
+                !inTextInput &&
                 selectedNodes.size > 0
             ) {
                 e.preventDefault();
                 const text = copySelectedNodes();
                 if (text) navigator.clipboard.writeText(text).catch(() => {});
                 deleteSelectedNodes();
+            } else if (mod && !e.shiftKey && key === "v" && !inTextInput && arrowClipboard && selectedNodes.size > 0) {
+                e.preventDefault();
+                pasteArrow();
             } else if (mod && !e.shiftKey && key === "v" && !inTextInput) {
                 e.preventDefault();
                 pasteAsChild();
@@ -83,11 +108,20 @@ export default function EditorPage() {
                     }
                 }
             } else if (e.key === "Escape") {
-                if (selectedNodes.size > 0) {
+                if (arrowPopover) {
+                    setArrowPopover(null);
+                } else if (selectedNodes.size > 0) {
                     clearSelection();
                 } else {
                     setMenuOpen(false);
                 }
+            } else if (
+                (e.key === "Delete" || e.key === "Backspace") &&
+                selectedArrow &&
+                !inTextInput
+            ) {
+                e.preventDefault();
+                deleteSelectedArrow();
             } else if (
                 (e.key === "Delete" || e.key === "Backspace") &&
                 selectedNodes.size > 0 &&
@@ -110,6 +144,14 @@ export default function EditorPage() {
             copySelectedNodes,
             pasteAsChild,
             swapSibling,
+            arrowPopover,
+            setArrowPopover,
+            arrowSettings,
+            selectedArrow,
+            deleteSelectedArrow,
+            cutSelectedArrow,
+            arrowClipboard,
+            pasteArrow,
         ],
     );
 
@@ -124,6 +166,7 @@ export default function EditorPage() {
                 <TreeView />
             </Canvas>
 
+            <ArrowPopover />
             <BracketEditor />
             <HamburgerMenu
                 open={menuOpen}

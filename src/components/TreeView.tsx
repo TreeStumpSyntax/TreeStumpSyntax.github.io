@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { computeArrowPaths, arrowExtraPadding } from "../lib/arrowLayout";
 import { matchBrackets } from "../lib/bracketMatcher";
 import { handleBracketKey } from "../lib/bracketPairing";
 import { layoutTree } from "../lib/layout";
-import { parse } from "../lib/parser";
+import { parse, extractArrows } from "../lib/parser";
 import { deleteRanges, getSelectedRanges } from "../lib/selection";
 import { useProjectStore, type TextEditType } from "../stores/projectStore";
 import { getSubtreeSourceStarts } from "../lib/treeOperations";
+import type { ArrowPath } from "../lib/arrowLayout";
 import type { PositionedNode, Settings } from "../types";
 import { FONT_SIZE, STROKE_WIDTH } from "../types";
 
@@ -513,6 +515,10 @@ export default function TreeView() {
     const toggleNodeSelection = useProjectStore((s) => s.toggleNodeSelection);
     const clearSelection = useProjectStore((s) => s.clearSelection);
 
+    const arrowSettingsMap = useProjectStore((s) => s.arrowSettings);
+    const selectedArrow = useProjectStore((s) => s.selectedArrow);
+    const setArrowPopover = useProjectStore((s) => s.setArrowPopover);
+
     const [editing, setEditing] = useState<EditingState | null>(null);
     const [editValue, setEditValue] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -561,6 +567,19 @@ export default function TreeView() {
     const layoutRef = useRef(layout);
     layoutRef.current = layout;
 
+    const arrowData = useMemo(() => {
+        const { tree } = parse(bracketText);
+        if (!tree || !layout) return { paths: [] as ArrowPath[], extraBelow: 0, extraAbove: 0 };
+        const arrows = extractArrows(tree);
+        if (arrows.length === 0) return { paths: [] as ArrowPath[], extraBelow: 0, extraAbove: 0 };
+        const paths = computeArrowPaths(layout.root, arrows, arrowSettingsMap, settings.defaultArrowColor);
+        const extra = arrowExtraPadding(arrows, arrowSettingsMap);
+        return { paths, extraBelow: extra.below, extraAbove: extra.above };
+    }, [bracketText, layout, arrowSettingsMap]);
+
+    const arrowDataRef = useRef(arrowData);
+    arrowDataRef.current = arrowData;
+
     useEffect(() => {
         const toNodeCoords = (
             clientX: number,
@@ -571,9 +590,10 @@ export default function TreeView() {
             const rect = svg.getBoundingClientRect();
             const zoom = useProjectStore.getState().canvas.zoom;
             const padding = FONT_SIZE * 2;
+            const extraAbove = arrowDataRef.current?.extraAbove ?? 0;
             return {
                 x: (clientX - rect.left) / zoom - padding,
-                y: (clientY - rect.top) / zoom - padding - FONT_SIZE,
+                y: (clientY - rect.top) / zoom - padding - FONT_SIZE - extraAbove,
             };
         };
 
@@ -908,7 +928,7 @@ export default function TreeView() {
 
     const padding = FONT_SIZE * 2;
     const svgWidth = layout.width + padding * 2;
-    const svgHeight = layout.height + padding * 2;
+    const svgHeight = layout.height + padding * 2 + arrowData.extraBelow + arrowData.extraAbove;
 
     const editWidth = editing
         ? Math.max(
@@ -927,7 +947,7 @@ export default function TreeView() {
             xmlns="http://www.w3.org/2000/svg"
             style={{ overflow: "visible" }}
         >
-            <g transform={`translate(${padding}, ${padding + FONT_SIZE})`}>
+            <g transform={`translate(${padding}, ${padding + FONT_SIZE + arrowData.extraAbove})`}>
                 {renderNode(
                     layout.root,
                     settings,
@@ -937,6 +957,75 @@ export default function TreeView() {
                     editSourceStart,
                     selectedNodes,
                 )}
+                {arrowData.paths.map((arrow) => {
+                    const isSelected = selectedArrow === arrow.key;
+                    const { settings: as } = arrow;
+                    const dashArray =
+                        as.lineStyle === "dashed"
+                            ? "8,4"
+                            : as.lineStyle === "dotted"
+                              ? "2,4"
+                              : undefined;
+                    return (
+                        <g key={`arrow-${arrow.key}`}>
+                            {isSelected && (
+                                <path
+                                    d={arrow.path}
+                                    fill="none"
+                                    stroke={as.color}
+                                    strokeWidth={STROKE_WIDTH + 4}
+                                    strokeLinecap="butt"
+                                    opacity={0.25}
+                                    pointerEvents="none"
+                                />
+                            )}
+                            <path
+                                d={arrow.path}
+                                fill="none"
+                                stroke={as.color}
+                                strokeWidth={STROKE_WIDTH}
+                                strokeDasharray={dashArray}
+                                strokeLinecap="butt"
+                                pointerEvents="none"
+                            />
+                            {arrow.arrowheadPath && (
+                                <path
+                                    d={arrow.arrowheadPath}
+                                    fill={
+                                        arrow.arrowheadFilled
+                                            ? as.color
+                                            : "none"
+                                    }
+                                    stroke={as.color}
+                                    strokeWidth={
+                                        arrow.arrowheadFilled
+                                            ? 0
+                                            : STROKE_WIDTH
+                                    }
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    pointerEvents="none"
+                                />
+                            )}
+                            {/* Invisible wide hit target for clicking */}
+                            <path
+                                d={arrow.path}
+                                fill="none"
+                                stroke="transparent"
+                                strokeWidth={14}
+                                style={{ cursor: "pointer" }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setArrowPopover({
+                                        key: arrow.key,
+                                        x: e.clientX,
+                                        y: e.clientY,
+                                    });
+                                }}
+                            />
+                        </g>
+                    );
+                })}
                 {editing && (
                     <>
                         {editSpanPositions.map((pos, i) => {

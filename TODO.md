@@ -1,10 +1,22 @@
 # TODO
 
+# Arrow Edits
+
+- Add arrow labels
+- Fix "above tree" setting looking weird
+- Autocomplete when typing arrow destination?
+- Rework syntax for multiple arrows from one node
+- For arrows from non-terminal nodes, arrow start shouldn't be connected to normal edges
+- Ability of manually adjust arrows
+- There are a few issues with how the arrows are placed/rendered. As shown in the screenshot, the line of the arrow goes past the arrow head, and the arrow head and line do not agree in direction.
+
 ## High Priority
 
+- Make {} be created in pairs
 - Add a warning message to save before you exit a project or load a new one
-- Add support for arrows - and look into other more advanced tree drawing techniques
+- Look into other more advanced tree drawing techniques
 - Add LaTeX rendering support
+- Ability to create new nodes while in interactive node edit mode (see https://klpkt.no/ling/tree.htm)
 - Lots of visual glitches with the inline editing - mostly the cursor being above the text, and brackets overlapping with text and bracket highlighting glow being offset from brackets
 
 ## Medium Priority
@@ -15,7 +27,6 @@
 - Consider how parts of the SVG are saved (how they are grouped, what is editable, etc)
 - When you're in editing mode but you hover the text while holding cmd, it should show the finger pointer cursor instead of the typing cursor
 - Add color picker
-- Ability to create new nodes while in interactive node edit mode
 - Ability to move node position left/right in interactive node edit mode
 - Ability to traverse nodes with arrow keys in interactive node edit mode so you don't have to move your hand to your mouse
 - Interactive node creation (could be very useful - another use case for this would be starting a tree without touching the text editor)
@@ -24,6 +35,8 @@
 - Add zoom level for auto-fit mode
 - Camera drag should be disabled when auto-fit is on
 - Remove leading and trailing whitespace in edit panel
+- Add demo video for arrows
+- Remove home screen entirely and have people go straight to the edit page (tutorial link gets moved to settings)
 - Spacing issues - edit panel sometimes goes over tree on autozoom mode - could be a issue with triangles idk
 - when you export a project, and then import it, the project name doesn't match the file name it was exported with
 
